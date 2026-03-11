@@ -14,7 +14,7 @@ router.get('/search', async(req,res)=>{
                 { category: { $regex: query, $options: 'i' } },
                 { description: { $regex: query, $options: 'i' } },
                 { subCategory: { $regex: query, $options: 'i' } }
-            ]
+            ] 
         });
         res.json(products);
     }catch(error){
