@@ -9,6 +9,11 @@ const userSchema = new mongoose.Schema({
   {timestamps: true}
 );
 
-const User = mongoose.model('User', userSchema);
+const emailSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true, lowercase: true }
+},
+  {timestamps: true}
+);
 
-export default User;
+export const User = mongoose.model('User', userSchema);
+export const Email = mongoose.model('Email', emailSchema);

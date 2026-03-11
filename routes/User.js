@@ -1,6 +1,6 @@
 import { protect } from '../middleware/authMiddleware.js';
 import express from 'express';
-import User from '../models/User.js';
+import {User} from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -83,11 +83,11 @@ router.delete('/:id', protect, async(req,res)=>{
     if(!user){
         return res.status(404).json({error: 'User not found'})
     }
+    await user.remove();
     res.json({message: 'User deleted successfully'})
   }catch(error){
     res.status(500).json({ error: error.message });
   }
-})  
-
+})
 
 export default router;
