@@ -1,0 +1,2 @@
+# ignore the env file which contains sensitive information like database connection strings and JWT secrets
+.env

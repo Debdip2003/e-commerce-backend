@@ -6,13 +6,105 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
-const generateToken = (user) => {
+const generateAccessToken = (user) => {
   return jwt.sign({
     id: user._id,
   }, process.env.JWT_SECRET, {
     expiresIn: '1d'
   });
 };
+
+export const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user._id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+
+//logout user
+router.post('/logout', protect, (req, res) => {
+  res.json({ message: 'Logout successful' });
+})
+
+// create new user
+router.post('/register', async (req, res) => {
+  try {    
+    const { name, email, password } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if(existingUser){
+        return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ name, email,  password: hashedPassword });
+    await user.save();
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    res.status(201).json({ message: 'User created successfully', accessToken, refreshToken });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+//login existing user
+router.post('/login',async(req,res)=>{
+  try{
+    const {email, password} = req.body;
+    const user =await User.findOne({ email });
+    if(!user){
+        return res.status(400).json({error: 'User not found'})
+    }
+    const compare = await bcrypt.compare(password, user.password);
+    if(!compare){
+        return res.status(400).json({error: 'Invalid password'})
+    }
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    res.json({message: 'Login successful', accessToken, refreshToken})
+  }catch(error){
+    res.status(500).json({ error: error.message });
+  }
+})
+
+//get user profile
+router.get('/profile', protect, async(req,res)=>{
+  res.json(req.user);
+})
+
+//delete account of the user
+router.delete('/delete', protect, async(req,res)=>{
+  try{
+    const user = await User.findByIdAndDelete(req.user._id);
+    if(!user){
+        return res.status(404).json({error: 'User not found'})
+    }
+    res.json({message: 'User deleted successfully'})
+  }catch(error){
+    res.status(500).json({ error: error.message });
+  }
+})
+
+//refresh token route
+router.post('/refresh-token', async(req,res)=>{
+  try{
+    const { refreshToken } = req.body;
+    if(!refreshToken){
+      return res.status(400).json({ error: 'No refresh token provided' });
+    }
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+    if(!user){
+      return res.status(400).json({error: 'Invalid refresh token'});
+    }
+    const accessToken = generateAccessToken(user);
+    res.json({ accessToken });
+  }catch(error){
+    res.status(500).json({ error: error.message });
+  }
+})
 
 //get all users
 router.get('/', protect, async(req,res)=>{
@@ -37,45 +129,6 @@ router.get('/:id', protect, async(req,res)=>{
   }
 })
 
-// create new user
-router.post('/register', async (req, res) => {
-  try {    
-    const { name, email, password } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if(existingUser){
-        return res.status(400).json({ error: 'User with this email already exists' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email,  password: hashedPassword });
-    await user.save();
-    const token = generateToken(user);
-    res.status(201).json({ message: 'User created successfully', token: token });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//login existing user
-router.post('/login',async(req,res)=>{
-  try{
-    const {email, password} = req.body;
-    const user =await User.findOne({ email });
-    if(!user){
-        return res.status(400).json({error: 'User not found'})
-    }
-    const compare = await bcrypt.compare(password, user.password);
-    if(!compare){
-        return res.status(400).json({error: 'Invalid password'})
-    }
-    const token = generateToken(user);
-    res.json({message: 'Login successful', token: token})
-  }catch(error){
-    res.status(500).json({ error: error.message });
-  }
-})
-
 //delete existing user
 router.delete('/:id', protect, async(req,res)=>{
   try{
@@ -83,11 +136,11 @@ router.delete('/:id', protect, async(req,res)=>{
     if(!user){
         return res.status(404).json({error: 'User not found'})
     }
-    await user.remove();
     res.json({message: 'User deleted successfully'})
   }catch(error){
     res.status(500).json({ error: error.message });
   }
 })
+
 
 export default router;
