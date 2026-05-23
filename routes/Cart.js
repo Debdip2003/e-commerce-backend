@@ -5,9 +5,9 @@ import {User} from "../models/User.js";
 const router = express.Router();
 
 //get cart for a user
-router.get('/', protect, async(req,res)=>{
+router.get('/:userId', protect, async(req,res)=>{
     try{
-        const user  = await User.findById(req.user._id);
+        const user  = await User.findById(req.params.userId);
         if(!user){
             return res.status(404).json({ error: 'User not found' });
         }
@@ -17,6 +17,7 @@ router.get('/', protect, async(req,res)=>{
         if(Object.keys(user.cart).length === 0){
             return res.status(200).json({ error: 'Cart is empty' });
         }
+        //finding the user first and then returning the cart of that user
         res.json(user.cart);
     }catch(error){
         res.status(500).json({ error: error.message });
@@ -25,22 +26,35 @@ router.get('/', protect, async(req,res)=>{
 
 //add to cart
 router.post('/', protect, async(req,res)=>{
-    try{
-        const user  = await User.findById(req.user._id);
-        if(!user){
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-        //if profuct id and quantity are not provided in the request body, return an error
-        const {_id, quantity} = req.body;
-        const productId = _id;
-        if(!productId || !quantity){
-            return res.status(400).json({ error: 'Product id and quantity are required' });
+        // Accept productId (_id), size, and quantity from request body
+        const { productId, size, quantity } = req.body;
+        if (!productId || !size || !quantity) {
+            return res.status(400).json({ error: 'Product id, size, and quantity are required' });
         }
-        user.cart[productId] = quantity;
+        // Initialize cart if not present
+        if (!user.cart) user.cart = {};
+        if (!Array.isArray(user.cart[productId])) {
+            user.cart[productId] = [];
+        }
+
+        // Check if this size already exists for this product
+        const existingItem = user.cart[productId].find(item => item.size === size);
+        if (existingItem) {
+            // If exists, update quantity
+            existingItem.quantity += quantity;
+        } else {
+            // Else, add new size entry
+            user.cart[productId].push({ size, quantity });
+        }
         user.markModified('cart');
         await user.save();
         res.json({ message: 'Product added to cart successfully', cart: user.cart });
-    }catch(error){
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 })
@@ -66,14 +80,13 @@ router.delete('/:productId', protect, async(req,res)=>{
 })
 
 //update cart
-router.put('/', protect, async(req,res)=>{
+router.put('/update/:productId', protect, async(req,res)=>{
     try{
         const user = await User.findById(req.user._id);
         if(!user){
             return res.status(404).json({ error: 'User not found' });
         }
-        const { _id, quantity } = req.body;
-        const productId = _id;
+        const { productId, quantity } = req.body;
         if(!productId){
             return res.status(400).json({ error: 'Product id is required' });
         }
