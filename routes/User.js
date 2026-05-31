@@ -71,7 +71,70 @@ router.post('/login',async(req,res)=>{
 
 //get user profile
 router.get('/profile', protect, async(req,res)=>{
-  res.json(req.user);
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({
+      _id: user._id,
+      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      address: user.address,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+})
+
+//update user profile
+router.put('/update-profile', protect, async(req,res)=>{
+  try {
+    const { firstName, lastName, phoneNumber, address } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update fields if provided
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+    
+    // Update address fields if provided
+    if (address) {
+      if (address.street !== undefined) user.address.street = address.street;
+      if (address.city !== undefined) user.address.city = address.city;
+      if (address.state !== undefined) user.address.state = address.state;
+      if (address.zipcode !== undefined) user.address.zipcode = address.zipcode;
+      if (address.country !== undefined) user.address.country = address.country;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        address: user.address,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 })
 
 //delete account of the user

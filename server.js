@@ -6,6 +6,7 @@ import emailRoute from './routes/Email.js'
 import productRoute from './routes/Product.js'
 import cartRoute from './routes/Cart.js'
 import customerReviewRoute from './routes/CustomerReview.js'
+import orderRoute from './routes/Order.js'
 import dns from "node:dns/promises"
 import cors from "cors"
 import "./jobs/emailcorn.js"
@@ -25,11 +26,13 @@ app.use(express.urlencoded({extended: true}));
 dns.setServers(["1.1.1.1"]);
 connectDb()
 
+//the basepath for the apis should be /api and then the route defined in the respective route file
 app.use('/api', emailRoute)
 app.use('/api', customerReviewRoute)
-app.use('/api/user', userRoute)
+app.use('/api/user', userRoute) //api endpoint should start with /user and then the route defined in userRoute
 app.use('/api/products', productRoute)
 app.use('/api/cart', cartRoute)
+app.use('/api/orders', orderRoute)
 
 app.listen(PORT, ()=>{
     console.log(`Server is running on ${PORT}`)

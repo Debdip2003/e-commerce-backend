@@ -147,7 +147,7 @@ router.get("/:userId", protect, async (req, res) => {
 // Add to cart
 router.post("/", protect, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
+        let user = await User.findById(req.user._id);
 
         if (!user) {
             return res.status(404).json({
@@ -210,7 +210,7 @@ router.post("/", protect, async (req, res) => {
 // Delete cart item
 router.delete("/:productId", protect, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
+        let user = await User.findById(req.user._id);
 
         if (!user) {
             return res.status(404).json({
@@ -252,7 +252,7 @@ router.delete("/:productId", protect, async (req, res) => {
 // Update cart
 router.put("/update/:productId", protect, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
+        let user = await User.findById(req.user._id);
 
         if (!user) {
             return res.status(404).json({
